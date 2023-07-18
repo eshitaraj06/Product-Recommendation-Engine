@@ -117,108 +117,58 @@ def preprocess_text(text):
 
 
 
+
+
 @app.route('/train', methods=['POST'])
-
 def train_api():
-
     if request.method == 'POST':
-
         try:
-
             # Read the uploaded CSV file
-
             csv_file = request.files['file']
-
             csv_reader = csv.reader(csv_file.read().decode('utf-8').splitlines())
 
-
-
-
             # Preprocessing setup
-
             stopwords_set = set(stopwords.words('english'))
-
             translator = str.maketrans('', '', string.punctuation)
 
-
-
-
             # Iterate over each row in the CSV file
-
             training_data = []
-
             for row in csv_reader:
-
                 if len(row) < 2:
-
                     continue
-
-
-
 
                 product_id = row[0]
-
                 description = row[1]
 
-
-
-
                 # Preprocess the description
-
                 description = preprocess_text(description)
 
-
-
-
                 if not description or description == "description":
-
                     continue
 
-
-
-
-                # Store the preprocessed product description and its corresponding product ID in Redis
-
-                redis_store.sadd('product_descriptions', description)
-
-                redis_store.hset('product_ids', description, product_id)
-
-
-
-
-                # Create a new Product instance and save it to the database
-
-                product = Product(product_id=product_id, description=description)
-
-                db.session.add(product)
+                # Check if the product_id already exists in the database
+                existing_product = Product.query.get(product_id)
+                if existing_product:
+                    # Update the description for the existing product
+                    existing_product.description = description
+                else:
+                    # Create a new Product instance and save it to the database
+                    product = Product(product_id=product_id, description=description)
+                    db.session.add(product)
 
                 db.session.commit()
-
                 training_data.append((product_id, description))
 
-
-
-
             for product_id, description in training_data:
-
                 print(f"Product ID: {product_id}, Description: {description}")
-
-
-
 
             return jsonify({'message': 'Training data stored in Redis successfully.'}), 200
 
-
-
-
         except Exception as e:
-
             return jsonify({'message': str(e)}), 400
 
-
-
-
     return jsonify({'message': 'Invalid request method.'}), 400
+
 
 
 
