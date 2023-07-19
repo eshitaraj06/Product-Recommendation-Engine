@@ -170,10 +170,6 @@ def train_api():
     return jsonify({'message': 'Invalid request method.'}), 400
 
 
-
-
-
-
 @app.route('/predict', methods=['POST'])
 def predict_api():
     if request.method == 'POST':
@@ -203,29 +199,27 @@ def predict_api():
             sorted_products = [preprocessed_descriptions[idx] for idx in sorted_indices]
             sorted_scores = [similarity_scores[idx] for idx in sorted_indices]
 
-            # Retrieve the top similar products with a score of 50 or above
+            # Retrieve the top similar product with the highest score
             threshold_score = 0.25
-            top_products = []
-            count = 0
+            top_product = None
             for idx, score in enumerate(sorted_scores):
                 if score >= threshold_score:
                     product = Product.query.filter_by(description=sorted_products[idx]).first()
                     if product:
-                        top_products.append({
+                        top_product = {
                             'product_id': product.product_id,
                             'description': product.description,
                             'similarity_score': score
-                        })
-                        count += 1
-                        if count >= 3:  # Limit to top 3 products
-                            break
+                        }
+                        break
 
-            return jsonify({'predictions': top_products}), 200
+            return jsonify({'prediction': top_product}), 200
 
         except Exception as e:
             return jsonify({'message': str(e)}), 400
 
     return jsonify({'message': 'Invalid request method.'}), 400
+
 
 
 
